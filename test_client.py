@@ -4,7 +4,6 @@ from fastmcp import Client
 
 from openai import OpenAI
 
-import os
 from dotenv import load_dotenv
 
 client = Client("test_server.py")
@@ -18,20 +17,9 @@ async def main():
         tools = await client.list_tools()
         openai_tools = 0
 
-        print(tools)
         openai_tools = []
 
-        it_count = 0
-
         for tool in tools:
-            print("\n")
-            print(tool)
-            print("\n")
-
-            it_count += 1
-
-            #print(tool.description)
-
             openai_tool = {
                 "type": "function",
                 "name": tool.name,
@@ -65,93 +53,82 @@ async def main():
                 i += 1
             
             openai_tools.append(openai_tool)
-                
+            
+        messages = []
+        
+        while True:
+            message = input("What would you like to ask?\n")
 
-        """tools = [{
-    "type": "function",
-    "name": "greet",
-    "description": "Greets a user with Hello followed by their name.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "name": {
-                "type": "string",
-                "description": "The name of the person to greet"
-            }
-        },
-        "required": [
-            "name"
-        ],
-        "additionalProperties": False
-    }
-},
-    {
-    "type": "function",
-    "name": "basic_math",
-    "description": "Performs a mathematical operation using two numbers, either adds them together, subtracts the second from the first, multiplies them together, or divides the first by the second. A parameter specifies which operation is used.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "n1": {
-                "type": "number",
-                "description": "The first number"
-            },
-            "n2": {
-                "type": "number",
-                "description": "The second number"
-            },
-            "op": {
-                "type": "string",
-                "description": "The mathematical operation to be done. + for addition, * for multiplication, - for subtraction, or / for division"
-            }
-        },
-        "required": [
-            "n1", "n2"
-        ],
-        "additionalProperties": False
-    }
-},
-    {
-    "type": "function",
-    "name": "command",
-    "description": "Runs a command on a bash terminal with the given arguments.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "args": {
-                "type": "string",
-                "description": "The bash command that will be run"
-            }
-        },
-        "required": [
-            "args"
-        ],
-        "additionalProperties": False
-    }
-}
-]"""
+            messages.append({"role": "user", "content": message})
 
-        message = input("What would you like to ask?\n")
+            response = chat.responses.create(
+                model="gpt-4o",
+                input=messages,
+                tools=openai_tools
+            )
 
-        response = chat.responses.create(
-            model="gpt-4.1",
-            input=[{"role": "user", "content": message}],
-            tools=openai_tools
-        )
+            print(response.output[0])
+        
+            try:
+                tool_arguments = response.output[0].arguments
+                tool_name = response.output[0].name
+            
+                print("Args: " + tool_arguments + "\nName: " + tool_name + "\n")
+            
+                tool_result = await call_tool(tool_name, ast.literal_eval(tool_arguments))
+            
+                tool_call_id = response.output[0].call_id
 
-        try:
-            tool_arguments = response.output[0].arguments
-            tool_name = response.output[0].name
-            print("Args: " + tool_arguments + "\nName: " + tool_name + "\n")
-            await call_tool(tool_name, ast.literal_eval(tool_arguments))
-        except:
-            print(response)
+                messages.append({
+                   "role": "assistant",
+                   "content": "Called " + tool_name + " tool with arguments: " + response.output[0].arguments
+                #"tool_calls": [
+                #    {
+                #        "id": tool_call_id,
+                #        "type": "function",
+                #        "function": {
+                #            "name": tool_name,
+                #            "arguments": str(tool_arguments)
+                #        }
+                #    }
+                #]
+                })
+            
+                messages.append({
+                    "role": "system",
+                    #"tool_call_id": tool_call_id,
+                    #"name": tool_name,
+                    "content": "Result of tool call:" + str(tool_result)
+                })
+
+                for message in messages:
+                    print(message)
+                    print("\n")
+            
+                response = chat.responses.create(
+                    model="gpt-4o",
+                    input=messages,
+                    tools=openai_tools
+                )   
+
+                print("\n\n\n")
+                #print(response)
+
+                messages.append({"role": "assistant", "content": response.output[0].content[0].text})
+            except:
+                messages.append({"role": "assistant", "content": response.output[0].content[0].text})
+                print("no tool executed")
+
+            print("ChatGPT Response:\n")
+            print(response.output[0].content[0].text)
+
 
 
 async def call_tool(function_name: str, vals: dict):
     async with client:
         result = await client.call_tool(function_name, vals)
-        print(result)
+        print(result[0].text)
+        return result[0].text
 
 if __name__ == "__main__":
     asyncio.run(main())
