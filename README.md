@@ -1,4 +1,4 @@
-This is an incredibly basic mcp server with three commands:
+###This is an incredibly basic mcp server with three commands:###
 
 basic_math:
     Enables simple 2 number mathematical functions (+, -, *, /)
