@@ -1,15 +1,15 @@
-#This is an incredibly basic mcp server with three commands:
+# This is an incredibly basic mcp server with three commands:
 
-##basic_math:
+## basic_math:
 Enables simple 2 number mathematical functions (+, -, *, /)
 
-##greet:
+## greet:
     Greets a given user with "Hello {user}"
 
-##command:
+## command:
     Executes a command on the command line (super insecure)
 
-##Instructions
+## Instructions
 
 Make sure to make a virtual environment, set it as your source, then install requirements.txt first, then run 
 
