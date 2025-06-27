@@ -11,3 +11,9 @@ wheels/
 .env
 
 main.py
+print.py
+test.py
+
+server.log
+
+number.js
